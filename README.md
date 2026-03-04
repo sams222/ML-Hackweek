@@ -158,4 +158,4 @@ See [`.env.example`](.env.example) for all configuration options with descriptio
 
 ## Team
 
-Built by [your names here] for GDG ML Hackweek 2026.
+Built by Sam and Abdullah for GDG ML Hackweek 2026.

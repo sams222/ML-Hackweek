@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     uploads_dir: str = "uploads"
     outputs_dir: str = "outputs"
-    mediapipe_model_path: str = "../MediaPipe-PoseLandmarks/pose_landmarker_full.task"
+    mediapipe_model_path: str = "models/pose_landmarker_full.task"
 
     frame_sample_rate: int = 15  # every Nth frame (30fps video → 2fps extraction)
     key_frame_count: int = 6

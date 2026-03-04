@@ -10,6 +10,7 @@ from app.config import settings
 def extract_frames(video_path: str) -> tuple[list[tuple[np.ndarray, int]], float]:
     """
     Extract every Nth frame from a video as RGB arrays.
+    Uses grab() for skipped frames to avoid expensive decoding.
 
     Returns (frames, source_fps) where frames is list of (rgb_frame, timestamp_ms).
     """
@@ -18,19 +19,21 @@ def extract_frames(video_path: str) -> tuple[list[tuple[np.ndarray, int]], float
         raise RuntimeError(f"Cannot open video: {video_path}")
 
     source_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     sample_rate = settings.frame_sample_rate
     frames = []
-    frame_idx = 0
 
-    while True:
-        ret, bgr_frame = cap.read()
-        if not ret:
-            break
+    for frame_idx in range(total_frames):
         if frame_idx % sample_rate == 0:
+            ret, bgr_frame = cap.read()
+            if not ret:
+                break
             rgb_frame = cv2.cvtColor(bgr_frame, cv2.COLOR_BGR2RGB)
             timestamp_ms = int((frame_idx / source_fps) * 1000)
             frames.append((rgb_frame, timestamp_ms))
-        frame_idx += 1
+        else:
+            if not cap.grab():
+                break
 
     cap.release()
     return frames, source_fps

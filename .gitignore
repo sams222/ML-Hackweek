@@ -1,0 +1,28 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# App runtime directories
+.env
+uploads/
+outputs/
+
+# Claude Code
+CLAUDE.md
+.claude/
+
+# ML data & trained models
+data/
+
+# External model weights
+gfpgan/
+
+# Python version file
+.python-version

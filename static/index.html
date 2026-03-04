@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jora - Your Climbing Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- Welcome Screen -->
+  <div id="view-welcome" class="view active">
+    <div class="welcome-content">
+      <div class="welcome-line"></div>
+      <h1 class="welcome-title">Jora</h1>
+      <p class="welcome-tagline">AI-powered climbing technique analysis</p>
+      <div class="welcome-line"></div>
+      <button id="btn-ready" class="btn btn-primary welcome-btn">I'm ready to level up</button>
+    </div>
+  </div>
+
+  <!-- Upload View -->
+  <div id="view-upload" class="view">
+    <div class="hero">
+      <h1>Jora - Your AI climbing coach. </h1>
+      <p class="subtitle">Upload a video for technique analysis and personalized feedback.</p>
+    </div>
+
+    <div id="drop-zone" class="drop-zone">
+      <div class="drop-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <p class="drop-label">Drag and drop your video here</p>
+      <p class="drop-hint">MP4, MOV, AVI, or WebM up to 500 MB</p>
+      <label class="btn btn-primary" for="file-input">Browse files</label>
+      <input id="file-input" type="file" accept="video/*" hidden />
+    </div>
+
+    <div id="file-selected" class="file-selected hidden">
+      <span id="file-name" class="file-name"></span>
+      <button id="btn-analyze" class="btn btn-primary">Analyze climb</button>
+    </div>
+
+    <div id="upload-error" class="error-banner hidden"></div>
+  </div>
+
+  <!-- Processing View -->
+  <div id="view-processing" class="view">
+    <div class="processing-header">
+      <div class="spinner-ring"></div>
+      <h2>Analyzing your climb</h2>
+    </div>
+
+    <div class="stage-stepper">
+      <div class="stage" data-stage="extracting_frames">
+        <div class="stage-dot"></div>
+        <span>Extracting frames</span>
+      </div>
+      <div class="stage" data-stage="pose_estimation">
+        <div class="stage-dot"></div>
+        <span>Pose estimation</span>
+      </div>
+      <div class="stage" data-stage="gemini_analysis">
+        <div class="stage-dot"></div>
+        <span>AI analysis</span>
+      </div>
+      <div class="stage" data-stage="tts_generation">
+        <div class="stage-dot"></div>
+        <span>Generating voice</span>
+      </div>
+      <div class="stage" data-stage="assembling_output">
+        <div class="stage-dot"></div>
+        <span>Assembling output</span>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+    </div>
+    <p id="progress-label" class="progress-label">Starting</p>
+
+    <div id="processing-error" class="error-banner hidden"></div>
+
+    <div id="elapsed-timer" class="elapsed-timer"></div>
+  </div>
+
+  <!-- Results View -->
+  <div id="view-results" class="view">
+    <header class="results-header">
+      <h2>Coaching Report</h2>
+      <button id="btn-new" class="btn btn-secondary">New analysis</button>
+    </header>
+
+    <div class="results-grid">
+      <section class="panel panel-video">
+        <h3>Annotated Climb</h3>
+        <video id="annotated-video" controls playsinline>
+          <source id="annotated-src" type="video/mp4" />
+        </video>
+      </section>
+
+      <section class="panel panel-coach">
+        <h3>Coach</h3>
+        <div class="visualizer-wrap">
+          <canvas id="coach-visualizer" width="400" height="400"></canvas>
+          <audio id="coach-audio" preload="auto"></audio>
+          <button id="btn-play-coach" class="btn btn-primary btn-play" title="Play coaching audio">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><polygon points="6,3 20,12 6,21"/></svg>
+            <svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" style="display:none"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel panel-feedback">
+        <div class="feedback-card" id="card-overall">
+          <h4>Summary</h4>
+          <p id="fb-overall"></p>
+        </div>
+
+        <div class="feedback-card" id="card-form">
+          <h4>Form</h4>
+          <ul id="fb-form"></ul>
+        </div>
+
+        <div class="feedback-card" id="card-movement">
+          <h4>Movement</h4>
+          <ul id="fb-movement"></ul>
+        </div>
+
+        <div class="feedback-card" id="card-route">
+          <h4>Route Reading</h4>
+          <ul id="fb-route"></ul>
+        </div>
+
+        <div class="feedback-card encouragement" id="card-encouragement">
+          <p id="fb-encouragement"></p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # Jora — AI Climbing Coach
 
-Jora (Hebrew for "teacher") is a multimodal AI system that analyzes climbing videos and delivers personalized technique coaching. Built for the GDG ML Hackweek 2026.
+Jora is a multimodal AI system that analyzes climbing videos and delivers personalized technique coaching. Built for the GDG ML Hackweek 2026.
 
 Upload a climbing video and Jora will:
 1. **Detect your body pose** frame-by-frame using MediaPipe (33 landmarks, 7 joint angles)

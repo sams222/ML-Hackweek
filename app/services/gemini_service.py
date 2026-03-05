@@ -14,19 +14,22 @@ _FALLBACK_FEEDBACK = FeedbackResult(
     form=["Maintain straight arms when possible to conserve energy."],
     movement=["Try to move fluidly between holds rather than static movements."],
     route_reading=["Study the route from the ground before starting."],
-    key_moments=[KeyMoment(frame_index=0, observation="Starting position noted.")],
+    key_moments=[KeyMoment(timestamp="0:00", timestamp_sec=0.0, observation="Starting position noted.")],
     encouragement="You're making great progress -- keep climbing!",
 )
 
 _PROMPT_TEMPLATE = """You are an elite-level rock climbing technique analyst. You have coached V10+ boulderers and 5.13+ sport climbers. You are reviewing video frames and joint angle telemetry from a climber's session.
 
-FRAMES: I am providing {n_frames} sequential key frames from the climb.
+FRAMES: I am providing {n_frames} sequential key frames from the climb, captured at the following timestamps:
+{frame_timestamps}
 TELEMETRY: Joint angle measurements computed via pose estimation:
 {angle_stats}
 
-YOUR TASK: Provide specific, actionable, technical feedback based on what you ACTUALLY SEE in these frames and the telemetry. Do NOT give generic climbing advice. Every point must reference something observable — a body position, a visible movement pattern, or a specific frame.
+YOUR TASK: Provide specific, actionable, technical feedback based on what you ACTUALLY SEE in these frames and the telemetry. Do NOT give generic climbing advice. Every point must reference something observable — a body position, a visible movement pattern, or a specific timestamp.
 
 IMPORTANT: Use plain, conversational language. Do NOT cite degree values or numbers from the telemetry. Instead, use the data to inform your observations and describe what you see in natural terms like "your arms are significantly bent," "your hips are pulling away from the wall," "your legs are nearly straight," etc. The telemetry helps you understand what's happening — the climber just needs to hear it described clearly.
+
+IMPORTANT: When referencing specific moments, ALWAYS use the video timestamp (e.g. "at 0:12" or "at 1:05") rather than the frame number. This helps the climber find the exact moment in their video.
 
 ANALYSIS CRITERIA — evaluate each:
 
@@ -42,15 +45,15 @@ ANALYSIS CRITERIA — evaluate each:
 
 6. REST POSITIONS: Do you see any shaking out, chalking, or deliberate rest positions? Arms that stay bent the entire climb suggest the climber isn't resting enough.
 
-For each feedback point, be specific about what you see: "In frame 3, your left arm is noticeably bent while gripping a hold at chest height — try straightening that arm to hang on your skeleton rather than your muscles" rather than "keep your arms straight."
+For each feedback point, be specific about what you see and reference the timestamp: "At 0:12, your left arm is noticeably bent while gripping a hold at chest height — try straightening that arm to hang on your skeleton rather than your muscles" rather than "keep your arms straight."
 
 Return ONLY valid JSON with NO markdown fences:
 {{
   "overall_summary": "2-3 sentences summarizing the most important technical observations in plain language. This will be read aloud as coaching audio.",
-  "form": ["specific observation referencing what you see in the frames", "..."],
-  "movement": ["specific observation about movement patterns seen in frames", "..."],
-  "route_reading": ["specific observation about sequencing, body positioning choices, rest usage", "..."],
-  "key_moments": [{{"frame_index": 0, "observation": "specific technical observation about this frame"}}],
+  "form": ["specific observation referencing timestamps and what you see", "..."],
+  "movement": ["specific observation about movement patterns with timestamps", "..."],
+  "route_reading": ["specific observation about sequencing, body positioning choices, rest usage with timestamps", "..."],
+  "key_moments": [{{"timestamp": "0:12", "observation": "specific technical observation at this moment"}}],
   "encouragement": "one sentence acknowledging something specific they did well"
 }}"""
 
@@ -62,11 +65,29 @@ def _strip_json_fences(text: str) -> str:
     return text.strip()
 
 
+def _parse_timestamp(ts: str) -> float:
+    """Convert 'M:SS' or 'MM:SS' string to seconds."""
+    try:
+        parts = ts.strip().split(":")
+        if len(parts) == 2:
+            return int(parts[0]) * 60 + int(parts[1])
+        return 0.0
+    except (ValueError, IndexError):
+        return 0.0
+
+
 def _parse_response(text: str) -> FeedbackResult:
     try:
         cleaned = _strip_json_fences(text)
         data = json.loads(cleaned)
-        key_moments = [KeyMoment(**km) for km in data.get("key_moments", [])]
+        key_moments = []
+        for km in data.get("key_moments", []):
+            ts = km.get("timestamp", "0:00")
+            key_moments.append(KeyMoment(
+                timestamp=ts,
+                timestamp_sec=_parse_timestamp(ts),
+                observation=km.get("observation", ""),
+            ))
         return FeedbackResult(
             overall_summary=data.get("overall_summary", ""),
             form=data.get("form", []),
@@ -81,9 +102,20 @@ def _parse_response(text: str) -> FeedbackResult:
         return _FALLBACK_FEEDBACK
 
 
-def analyze_climb(key_frames_pil: list[Image.Image], angle_stats: dict) -> FeedbackResult:
+def _format_timestamp_ms(ms: int) -> str:
+    """Convert milliseconds to 'M:SS' string."""
+    total_sec = ms // 1000
+    return f"{total_sec // 60}:{total_sec % 60:02d}"
+
+
+def analyze_climb(
+    key_frames_pil: list[Image.Image],
+    angle_stats: dict,
+    key_timestamps: list[int] | None = None,
+) -> FeedbackResult:
     """
     Send key frames + angle stats to Gemini and return FeedbackResult.
+    key_timestamps: list of timestamp_ms values for each key frame.
     """
     if not settings.gemini_api_key:
         print("[GeminiService] No API key set, using fallback")
@@ -105,8 +137,19 @@ def analyze_climb(key_frames_pil: list[Image.Image], angle_stats: dict) -> Feedb
                 )
         angle_stats_str = "\n".join(stats_lines) if stats_lines else "  (no pose detected)"
 
+        # Format frame timestamp labels
+        if key_timestamps:
+            ts_labels = [
+                f"Frame {i+1} ({_format_timestamp_ms(ts)})"
+                for i, ts in enumerate(key_timestamps)
+            ]
+        else:
+            ts_labels = [f"Frame {i+1}" for i in range(len(key_frames_pil))]
+        frame_timestamps_str = ", ".join(ts_labels)
+
         prompt = _PROMPT_TEMPLATE.format(
             n_frames=len(key_frames_pil),
+            frame_timestamps=frame_timestamps_str,
             angle_stats=angle_stats_str,
         )
 

@@ -19,7 +19,8 @@ class PipelineStage(str, Enum):
 
 
 class KeyMoment(BaseModel):
-    frame_index: int
+    timestamp: str = "0:00"       # "M:SS" format, e.g. "0:12"
+    timestamp_sec: float = 0.0    # seconds, used by frontend to seek video
     observation: str
 
 

@@ -364,6 +364,7 @@ function renderResult(data) {
   setList('fb-form', feedback.form);
   setList('fb-movement', feedback.movement);
   setList('fb-route', feedback.route_reading);
+  renderKeyMoments('fb-key-moments', feedback.key_moments);
   setText('fb-encouragement', feedback.encouragement);
 }
 
@@ -380,6 +381,41 @@ function setList(id, items) {
     const li = document.createElement('li');
     li.textContent = item;
     el.appendChild(li);
+  });
+}
+
+function renderKeyMoments(id, moments) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = '';
+  if (!moments || moments.length === 0) {
+    el.closest('.feedback-card').classList.add('hidden');
+    return;
+  }
+  (moments).forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'key-moment';
+
+    const pill = document.createElement('button');
+    pill.className = 'timestamp-pill';
+    pill.textContent = m.timestamp || '0:00';
+    pill.title = 'Jump to this moment in the video';
+    pill.addEventListener('click', () => {
+      const video = document.getElementById('annotated-video');
+      if (video) {
+        video.currentTime = m.timestamp_sec || 0;
+        video.play();
+        video.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+
+    const text = document.createElement('span');
+    text.className = 'key-moment-text';
+    text.textContent = m.observation;
+
+    row.appendChild(pill);
+    row.appendChild(text);
+    el.appendChild(row);
   });
 }
 

@@ -52,8 +52,9 @@ async def run_pipeline(job_id: str, input_video_path: str) -> None:
         from app.services.gemini_service import analyze_climb
 
         key_rgb_frames = [r["annotated_frame"] for r in key_frames]
+        key_timestamps = [r["timestamp_ms"] for r in key_frames]
         key_pil_images = frames_to_pil(key_rgb_frames)
-        feedback = await asyncio.to_thread(analyze_climb, key_pil_images, angle_stats)
+        feedback = await asyncio.to_thread(analyze_climb, key_pil_images, angle_stats, key_timestamps)
         _log("Gemini analysis complete")
 
         # ── Stage 4: TTS ─────────────────────────────────────────────────

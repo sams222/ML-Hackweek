@@ -20,6 +20,7 @@ CLAUDE.md
 
 # ML data & trained models
 data/
+models/*.pkl
 
 # External model weights
 gfpgan/

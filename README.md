@@ -28,6 +28,34 @@ uv run python main.py
 # Open http://localhost:8000
 ```
 
+## Training the Model
+Jora includes a biomechanical classifier that scores climbing technique on a 0–100 scale and identifies specific areas for improvement (arm efficiency, hip positioning, movement smoothness, etc.).
+This feeds directly into the Gemini coaching prompt to ground feedback in measured movement data.
+The model is a Gradient Boosting classifier trained on 25 features extracted from MediaPipe pose landmarks — things like joint angles, hesitation time, movement jerk, and left/right limb coordination.
+
+First-time setup
+You only need to do this once. The trained model is saved to models/ and reused on every subsequent run.
+
+```bash
+# generate synthetic training data
+uv run python train/generate_data.py
+
+# train and save the model
+uv run python train/train_quality_model.py
+```
+
+This generates 3,000 synthetic labeled climbing clips and trains the classifier in under a minute. You'll see a training summary with cross-validation AUC and the most important features.
+
+## Improving accuracy with real data
+The model bootstraps from synthetic data, so initial scores will be confident but may not perfectly match real-world climbing. Once you have real footage, you can label clips and retrain
+- Run the app on real climbing videos
+- Create data/real_labeled.csv with the same columns as data/synthetic_climb_data.csv, adding a label column (1 = good technique, 0 = bad)
+- Retrain:
+
+```bash
+uv run python train/train_quality_model.py --data data/real_labeled.csv
+```
+
 ### Getting API Keys
 
 | Service | Where | Free Tier |
@@ -79,11 +107,9 @@ Pipeline stages:
 │   ├── services/                   # One per external dependency
 │   ├── models/schemas.py           # Pydantic models
 │   └── jobs/job_store.py           # In-memory job tracking
-├── ml/                             # Training scripts & model definitions
-│   ├── model.py                    # 1D CNN move classifier
-│   ├── train_classifier.py         # Training loop
-│   ├── rubric.py                   # Rubric definitions
-│   └── train_rubric_model.py       # Rubric scoring model
+├── train/                          # Training scripts & model definitions
+│   ├── generate_data.py            # Generate synthetic training data
+│   └── train_quality_model.py      # Train and save the model
 ├── data/                           # Datasets & trained models (git-ignored)
 ├── static/                         # Frontend (vanilla HTML/CSS/JS)
 └── .env.example                    # Environment variable template

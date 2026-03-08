@@ -45,8 +45,24 @@ async def run_pipeline(job_id: str, input_video_path: str) -> None:
         key_frames = select_key_frames(pose_results, n=settings.key_frame_count)
         angle_stats = compute_angle_stats(pose_results)
 
-        # ── Stage 3: Gemini analysis ─────────────────────────────────────
-        job_store.update_stage(job_id, PipelineStage.gemini_analysis, 40)
+        # ── Stage 3: Quality classification ─────────────────────────────
+        job_store.update_stage(job_id, PipelineStage.gemini_analysis, 35)
+        _log("Running quality classification...")
+        from app.services.quality_classifier import get_classifier
+        quality_result = await asyncio.to_thread(
+            get_classifier().classify_pose_results, pose_results
+        )
+        if quality_result:
+            _log(
+                f"Quality: {quality_result['verdict'].upper()} "
+                f"(score {quality_result['score']}/100, "
+                f"confidence {quality_result['confidence']}%)"
+            )
+        else:
+            _log("Quality classification skipped (too few detected frames)")
+
+        # ── Stage 4: Gemini analysis ─────────────────────────────────────
+        job_store.update_stage(job_id, PipelineStage.gemini_analysis, 45)
         _log("Sending to Gemini...")
         from app.services.video_service import frames_to_pil
         from app.services.gemini_service import analyze_climb
@@ -54,11 +70,17 @@ async def run_pipeline(job_id: str, input_video_path: str) -> None:
         key_rgb_frames = [r["annotated_frame"] for r in key_frames]
         key_timestamps = [r["timestamp_ms"] for r in key_frames]
         key_pil_images = frames_to_pil(key_rgb_frames)
-        feedback = await asyncio.to_thread(analyze_climb, key_pil_images, angle_stats, key_timestamps)
+        feedback = await asyncio.to_thread(
+            analyze_climb,
+            key_pil_images,
+            angle_stats,
+            key_timestamps,
+            quality_result,   # ← new arg: pass quality data into Gemini prompt
+        )
         _log("Gemini analysis complete")
 
-        # ── Stage 4: TTS ─────────────────────────────────────────────────
-        job_store.update_stage(job_id, PipelineStage.tts_generation, 58)
+        # ── Stage 5: TTS ─────────────────────────────────────────────────
+        job_store.update_stage(job_id, PipelineStage.tts_generation, 62)
         _log("Generating TTS...")
         from app.services.tts_service import synthesize
 
@@ -66,8 +88,8 @@ async def run_pipeline(job_id: str, input_video_path: str) -> None:
         await asyncio.to_thread(synthesize, feedback.overall_summary, audio_path)
         _log("TTS complete")
 
-        # ── Stage 5: Assemble annotated video ────────────────────────────
-        job_store.update_stage(job_id, PipelineStage.assembling_output, 75)
+        # ── Stage 6: Assemble annotated video ────────────────────────────
+        job_store.update_stage(job_id, PipelineStage.assembling_output, 78)
         _log("Assembling video...")
         from app.services.video_service import assemble_annotated_video
 

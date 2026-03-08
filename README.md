@@ -118,7 +118,7 @@ Five scoring dimensions rated 1-5, predicted by Ridge regression on angle statis
 | Hip Positioning | Hips close to wall, weight over feet |
 | Foot Precision | Quiet feet, deliberate placements |
 | Movement Efficiency | Smooth flow, minimal wasted motion |
-| Body Tension | Core engagement, controlled movement |
+| Body Tension | Posterior chain engagement, controlled movement |
 
 Rubric scores and few-shot examples are injected into the Gemini prompt to ground the feedback in measurable criteria.
 
